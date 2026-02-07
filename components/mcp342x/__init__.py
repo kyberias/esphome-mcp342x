@@ -28,7 +28,7 @@ RES_MAP = {
     18: 3,
 }
 
-CONFIG_SCHEMA = (
+MCP342X_HUB_SCHEMA = (
     cv.Schema(
         {
             cv.Required(CONF_ID): cv.declare_id(MCP342xComponent),
@@ -36,12 +36,12 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_GAIN, default=1): cv.one_of(*GAIN_MAP.keys(), int=True),
             cv.Optional(CONF_RESOLUTION, default=16): cv.one_of(*RES_MAP.keys(), int=True),
             cv.Optional(CONF_VREF, default=2.048): cv.float_,
-            cv.Optional(CONF_UPDATE_INTERVAL, default="200ms"): cv.update_interval,
         }
     )
     .extend(cv.polling_component_schema("200ms"))
     .extend(i2c.i2c_device_schema(0x68))
 )
+CONFIG_SCHEMA = cv.ensure_list(MCP342X_HUB_SCHEMA)
 
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])

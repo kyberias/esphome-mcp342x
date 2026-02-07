@@ -8,27 +8,27 @@ static const char *const TAG = "mcp342x";
 
 void MCP342xComponent::register_channel_sensor(uint8_t channel, sensor::Sensor *s) {
   if (channel > 3) return;
-  this->channels_[channel] = s;
+  this->channels[channel] = s;
 }
 
 void MCP342xComponent::setup() {
   // Nothing to do here; we will run one-shot conversions per channel in update().
-  this->conversion_started_ = false;
+  this->conversion_started = false;
 }
 
 void MCP342xComponent::update() {
   // Find next enabled channel if current is not configured
   uint8_t tries = 0;
-  while (tries < 4 && this->channels_[this->cur_ch_] == nullptr) {
-    this->cur_ch_ = (this->cur_ch_ + 1) & 0x03;
+  while (tries < 4 && this->channels[this->cur_ch] == nullptr) {
+    this->cur_ch = (this->cur_ch + 1) & 0x03;
     tries++;
   }
   if (tries >= 4) return;  // no sensors registered
 
-  if (!this->conversion_started_) {
-    this->start_conversion_(this->cur_ch_);
-    this->conversion_started_ = true;
-    this->started_ms_ = millis();
+  if (!this->conversion_started) {
+    this->start_conversion_(this->cur_ch);
+    this->conversion_started = true;
+    this->started_ms = millis();
     return;
   }
 
@@ -37,7 +37,7 @@ void MCP342xComponent::update() {
   uint8_t cfg = 0;
   if (!this->read_conversion_(raw, ready, cfg)) {
     ESP_LOGW(TAG, "I2C read failed");
-    this->conversion_started_ = false;
+    this->conversion_started = false;
     return;
   }
   if (!ready) {
@@ -48,13 +48,13 @@ void MCP342xComponent::update() {
 
   // Convert raw code -> volts (signed). Most single-ended divider use is positive.
   const float v = raw * this->lsb_volts_();
-  if (this->channels_[this->cur_ch_] != nullptr) {
-    this->channels_[this->cur_ch_]->publish_state(v);
+  if (this->channels[this->cur_ch] != nullptr) {
+    this->channels[this->cur_ch]->publish_state(v);
   }
 
   // Move to next channel
-  this->cur_ch_ = (this->cur_ch_ + 1) & 0x03;
-  this->conversion_started_ = false;
+  this->cur_ch = (this->cur_ch + 1) & 0x03;
+  this->conversion_started = false;
 }
 
 void MCP342xComponent::start_conversion_(uint8_t channel) {
@@ -66,7 +66,7 @@ void MCP342xComponent::start_conversion_(uint8_t channel) {
 
 bool MCP342xComponent::read_conversion_(int32_t &raw, bool &ready, uint8_t &cfg_out) {
   // 18-bit: 3 data bytes + config; else 2 data + config
-  const bool is18 = (this->res_code_ == 3);
+  const bool is18 = (this->res_code == 3);
   const uint8_t len = is18 ? 4 : 3;
   uint8_t buf[4] = {0};
 
@@ -86,8 +86,8 @@ bool MCP342xComponent::read_conversion_(int32_t &raw, bool &ready, uint8_t &cfg_
     int32_t vv = (int32_t) v;
 
     // shift down for 12/14-bit (data left-justified in 16-bit)
-    if (this->res_code_ == 0) vv >>= 4;      // 12-bit
-    else if (this->res_code_ == 1) vv >>= 2; // 14-bit
+    if (this->res_code == 0) vv >>= 4;      // 12-bit
+    else if (this->res_code == 1) vv >>= 2; // 14-bit
     // 16-bit: no shift
 
     raw = vv;
@@ -97,7 +97,7 @@ bool MCP342xComponent::read_conversion_(int32_t &raw, bool &ready, uint8_t &cfg_
 }
 
 float MCP342xComponent::gain_value_() const {
-  switch (this->gain_code_) {
+  switch (this->gain_code) {
     case 0: return 1.0f;
     case 1: return 2.0f;
     case 2: return 4.0f;
@@ -109,12 +109,12 @@ float MCP342xComponent::gain_value_() const {
 float MCP342xComponent::lsb_volts_() const {
   // LSB = (2*Vref/gain) / 2^(N-1)
   int n = 16;
-  if (this->res_code_ == 0) n = 12;
-  else if (this->res_code_ == 1) n = 14;
-  else if (this->res_code_ == 2) n = 16;
-  else if (this->res_code_ == 3) n = 18;
+  if (this->res_code == 0) n = 12;
+  else if (this->res_code == 1) n = 14;
+  else if (this->res_code == 2) n = 16;
+  else if (this->res_code == 3) n = 18;
 
-  const float fs = (2.0f * this->vref_) / this->gain_value_();
+  const float fs = (2.0f * this->vref) / this->gain_value_();
   const float denom = (float) (1UL << (n - 1));  // n<=18 safe in 32-bit
   return fs / denom;
 }
@@ -129,8 +129,8 @@ uint8_t MCP342xComponent::config_byte_(uint8_t channel, bool start) const {
   if (start) cfg |= 0x80;
   cfg |= (channel & 0x03) << 5;
   // one-shot => bit4 = 0
-  cfg |= (this->res_code_ & 0x03) << 2;
-  cfg |= (this->gain_code_ & 0x03);
+  cfg |= (this->res_code & 0x03) << 2;
+  cfg |= (this->gain_code & 0x03);
   return cfg;
 }
 
