@@ -73,7 +73,7 @@ void MCP342xComponent::update() {
 
 void MCP342xComponent::start_conversion(uint8_t channel) {
   uint8_t cfg = this->config_byte(channel, true);
-  if (!this->write(&cfg, 1)) {
+  if (this->write(&cfg, 1) != i2c::NO_ERROR) {
     ESP_LOGW(TAG, "I2C write (start conversion) failed");
   }
 }
@@ -84,7 +84,9 @@ bool MCP342xComponent::read_conversion(int32_t &raw, bool &ready, uint8_t &cfg_o
   const uint8_t len = is18 ? 4 : 3;
   uint8_t buf[4] = {0};
 
-  if (!this->read(buf, len)) return false;
+  if (this->read(buf, len) != i2c::NO_ERROR) {
+    return false;
+  }
 
   cfg_out = buf[len - 1];
   // RDY bit (bit7): 0 = ready, 1 = not ready (in one-shot conversion)
