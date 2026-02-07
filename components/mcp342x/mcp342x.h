@@ -7,6 +7,10 @@
 namespace esphome {
 namespace mcp342x {
 
+class MCP342xVoltageSensor : public sensor::Sensor {
+  // No extra behavior needed; hub publishes into it.
+};
+
 class MCP342xComponent : public PollingComponent, public i2c::I2CDevice {
  public:
   void set_gain_code(uint8_t gain_code) { this->gain_code_ = (gain_code & 0x03); }
