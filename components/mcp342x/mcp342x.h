@@ -41,6 +41,8 @@ class MCP342xComponent : public PollingComponent, public i2c::I2CDevice {
   float lsb_volts_() const;
   float gain_value_() const;
   uint8_t config_byte_(uint8_t channel, bool start) const;
+  uint32_t conversion_time_ms_() const;
+
 };
 
 }

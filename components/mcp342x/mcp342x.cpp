@@ -1,6 +1,10 @@
 #include "mcp342x.h"
 #include "esphome/core/log.h"
 
+#ifdef ARDUINO_ARCH_ESP8266
+#include <Wire.h>
+#endif
+
 namespace esphome {
 namespace mcp342x {
 
@@ -12,12 +16,22 @@ void MCP342xComponent::register_channel_sensor(uint8_t channel, sensor::Sensor *
 }
 
 void MCP342xComponent::setup() {
+#ifdef ARDUINO_ARCH_ESP8266
+  // Default can be too low for some stretching devices; 150ms is a common safe value.
+  Wire.setClockStretchLimit(150000);
+#endif 
+
   // Nothing to do here; we will run one-shot conversions per channel in update().
   this->conversion_started = false;
 }
 
 void MCP342xComponent::update() {
-  // Find next enabled channel if current is not configured
+  if (this->conversion_started_) {
+    if (millis() - this->started_ms_ < this->conversion_time_ms_())
+        return;  // don't read yet
+  }
+
+    // Find next enabled channel if current is not configured
   uint8_t tries = 0;
   while (tries < 4 && this->channels[this->cur_ch] == nullptr) {
     this->cur_ch = (this->cur_ch + 1) & 0x03;
@@ -132,6 +146,16 @@ uint8_t MCP342xComponent::config_byte_(uint8_t channel, bool start) const {
   cfg |= (this->res_code & 0x03) << 2;
   cfg |= (this->gain_code & 0x03);
   return cfg;
+}
+
+uint32_t MCP342xComponent::conversion_time_ms_() const {
+  switch (this->res_code_) {
+    case 0: return 5;    // 12-bit ~240 SPS
+    case 1: return 20;   // 14-bit ~60 SPS
+    case 2: return 80;   // 16-bit ~15 SPS (give it margin)
+    case 3: return 320;  // 18-bit ~3.75 SPS (give it margin)
+    default: return 80;
+  }
 }
 
 }  // namespace mcp342x
