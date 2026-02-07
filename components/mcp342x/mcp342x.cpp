@@ -131,7 +131,7 @@ float MCP342xComponent::lsb_volts() const {
   else if (this->res_code == 3) n = 18;
 
   // MCP342x full-scale is ±(Vref/gain)
-  const float fs = this->vref_ / this->gain_value_();
+  const float fs = this->vref / this->gain_value();
   const float denom = (float) (1UL << (n - 1));
   return fs / denom;
 }
