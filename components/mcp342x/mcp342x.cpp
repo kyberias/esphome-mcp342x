@@ -26,8 +26,8 @@ void MCP342xComponent::setup() {
 }
 
 void MCP342xComponent::update() {
-  if (this->conversion_started_) {
-    if (millis() - this->started_ms_ < this->conversion_time_ms())
+  if (this->conversion_started) {
+    if (millis() - this->started_ms < this->conversion_time_ms())
         return;  // don't read yet
   }
 
@@ -149,7 +149,7 @@ uint8_t MCP342xComponent::config_byte(uint8_t channel, bool start) const {
 }
 
 uint32_t MCP342xComponent::conversion_time_ms() const {
-  switch (this->res_code_) {
+  switch (this->res_code) {
     case 0: return 5;    // 12-bit ~240 SPS
     case 1: return 20;   // 14-bit ~60 SPS
     case 2: return 80;   // 16-bit ~15 SPS (give it margin)
