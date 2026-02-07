@@ -27,7 +27,7 @@ void MCP342xComponent::setup() {
 
 void MCP342xComponent::update() {
   if (this->conversion_started_) {
-    if (millis() - this->started_ms_ < this->conversion_time_ms_())
+    if (millis() - this->started_ms_ < this->conversion_time_ms())
         return;  // don't read yet
   }
 
@@ -40,7 +40,7 @@ void MCP342xComponent::update() {
   if (tries >= 4) return;  // no sensors registered
 
   if (!this->conversion_started) {
-    this->start_conversion_(this->cur_ch);
+    this->start_conversion(this->cur_ch);
     this->conversion_started = true;
     this->started_ms = millis();
     return;
@@ -49,7 +49,7 @@ void MCP342xComponent::update() {
   int32_t raw = 0;
   bool ready = false;
   uint8_t cfg = 0;
-  if (!this->read_conversion_(raw, ready, cfg)) {
+  if (!this->read_conversion(raw, ready, cfg)) {
     ESP_LOGW(TAG, "I2C read failed");
     this->conversion_started = false;
     return;
@@ -61,7 +61,7 @@ void MCP342xComponent::update() {
   }
 
   // Convert raw code -> volts (signed). Most single-ended divider use is positive.
-  const float v = raw * this->lsb_volts_();
+  const float v = raw * this->lsb_volts();
   if (this->channels[this->cur_ch] != nullptr) {
     this->channels[this->cur_ch]->publish_state(v);
   }
@@ -71,14 +71,14 @@ void MCP342xComponent::update() {
   this->conversion_started = false;
 }
 
-void MCP342xComponent::start_conversion_(uint8_t channel) {
-  uint8_t cfg = this->config_byte_(channel, true);
+void MCP342xComponent::start_conversion(uint8_t channel) {
+  uint8_t cfg = this->config_byte(channel, true);
   if (!this->write(&cfg, 1)) {
     ESP_LOGW(TAG, "I2C write (start conversion) failed");
   }
 }
 
-bool MCP342xComponent::read_conversion_(int32_t &raw, bool &ready, uint8_t &cfg_out) {
+bool MCP342xComponent::read_conversion(int32_t &raw, bool &ready, uint8_t &cfg_out) {
   // 18-bit: 3 data bytes + config; else 2 data + config
   const bool is18 = (this->res_code == 3);
   const uint8_t len = is18 ? 4 : 3;
@@ -110,7 +110,7 @@ bool MCP342xComponent::read_conversion_(int32_t &raw, bool &ready, uint8_t &cfg_
   return true;
 }
 
-float MCP342xComponent::gain_value_() const {
+float MCP342xComponent::gain_value() const {
   switch (this->gain_code) {
     case 0: return 1.0f;
     case 1: return 2.0f;
@@ -120,7 +120,7 @@ float MCP342xComponent::gain_value_() const {
   }
 }
 
-float MCP342xComponent::lsb_volts_() const {
+float MCP342xComponent::lsb_volts() const {
   // LSB = (2*Vref/gain) / 2^(N-1)
   int n = 16;
   if (this->res_code == 0) n = 12;
@@ -128,12 +128,12 @@ float MCP342xComponent::lsb_volts_() const {
   else if (this->res_code == 2) n = 16;
   else if (this->res_code == 3) n = 18;
 
-  const float fs = (2.0f * this->vref) / this->gain_value_();
+  const float fs = (2.0f * this->vref) / this->gain_value();
   const float denom = (float) (1UL << (n - 1));  // n<=18 safe in 32-bit
   return fs / denom;
 }
 
-uint8_t MCP342xComponent::config_byte_(uint8_t channel, bool start) const {
+uint8_t MCP342xComponent::config_byte(uint8_t channel, bool start) const {
   // bit7 RDY: in one-shot mode, writing 1 starts conversion
   // bits6-5 channel
   // bit4 mode: 0 = one-shot
@@ -148,7 +148,7 @@ uint8_t MCP342xComponent::config_byte_(uint8_t channel, bool start) const {
   return cfg;
 }
 
-uint32_t MCP342xComponent::conversion_time_ms_() const {
+uint32_t MCP342xComponent::conversion_time_ms() const {
   switch (this->res_code_) {
     case 0: return 5;    // 12-bit ~240 SPS
     case 1: return 20;   // 14-bit ~60 SPS

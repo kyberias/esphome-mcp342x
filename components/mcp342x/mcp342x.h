@@ -35,13 +35,13 @@ class MCP342xComponent : public PollingComponent, public i2c::I2CDevice {
     bool conversion_started{false};
     uint32_t started_ms{0};
 
-  void start_conversion_(uint8_t channel);
-  bool read_conversion_(int32_t &raw, bool &ready, uint8_t &cfg_out);
+  void start_conversion(uint8_t channel);
+  bool read_conversion(int32_t &raw, bool &ready, uint8_t &cfg_out);
 
-  float lsb_volts_() const;
-  float gain_value_() const;
-  uint8_t config_byte_(uint8_t channel, bool start) const;
-  uint32_t conversion_time_ms_() const;
+  float lsb_volts() const;
+  float gain_value() const;
+  uint8_t config_byte(uint8_t channel, bool start) const;
+  uint32_t conversion_time_ms() const;
 
 };
 
